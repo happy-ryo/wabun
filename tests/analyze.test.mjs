@@ -14,7 +14,7 @@ const run = (...args) => spawnSync("node", [SCRIPT, ...args], { encoding: "utf-8
 // 15字超・かな率20%以上の散文になるよう下駄を履かせるヘルパ
 const doc = (...sentences) => sentences.map((s) => s + "。").join("");
 
-// 翻訳調(閾値超過)・書き下ろし水準の定型文書
+// 翻訳調(閾値以上)・書き下ろし水準の定型文書
 const BAD = doc(
   "指定しなかった場合はデフォルト値が使用される場合があります",
   "なお、この場合においてはオプションを指定することができます",
@@ -133,7 +133,7 @@ test("CLI: 終了コード 2(要修正) / 0(水準内) / 1(散文なし) / 64(�
   assert.equal(run().status, 64);
 });
 
-test("CLI: 複数ファイルは個別測定、1つでも超過なら exit 2", () => {
+test("CLI: 複数ファイルは個別測定、1つでも閾値以上なら exit 2", () => {
   const dir = mkdtempSync(join(tmpdir(), "wabun-test-"));
   const bad = join(dir, "bad.txt"); writeFileSync(bad, BAD);
   const ok = join(dir, "ok.txt"); writeFileSync(ok, OK);

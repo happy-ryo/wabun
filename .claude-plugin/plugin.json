@@ -1,7 +1,7 @@
 {
   "name": "wabun",
-  "description": "日本語技術文書の直訳調（翻訳調）を測定し、情報を保存したまま書き直す。主張と根拠のつり合いを監査するスキルも含む。",
-  "version": "0.9.0",
+  "description": "日本語技術文書の翻訳調を数値で判定して書き直し、文書の記述をリポジトリの実態と照合する。",
+  "version": "0.10.0",
   "author": {
     "name": "happy-ryo",
     "url": "https://github.com/happy-ryo"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/happy-ryo/wabun",
   "repository": "https://github.com/happy-ryo/wabun",
   "license": "MIT",
-  "keywords": ["japanese", "writing", "translation", "style", "lint"]
+  "keywords": ["japanese", "writing", "translation", "documentation", "audit", "lint"]
 }

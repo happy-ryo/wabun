@@ -1,7 +1,7 @@
 {
   "name": "wabun",
-  "version": "0.9.0",
-  "description": "日本語技術文書の直訳調を測定し、情報を保存したまま書き直す。主張と根拠のつり合いを監査するスキルも含む。",
+  "version": "0.10.0",
+  "description": "日本語技術文書の翻訳調を数値で判定して書き直し、文書の記述をリポジトリの実態と照合する。",
   "author": {
     "name": "happy-ryo",
     "url": "https://github.com/happy-ryo"
@@ -9,19 +9,19 @@
   "homepage": "https://github.com/happy-ryo/wabun",
   "repository": "https://github.com/happy-ryo/wabun",
   "license": "MIT",
-  "keywords": ["japanese", "writing", "translation", "style", "lint"],
+  "keywords": ["japanese", "writing", "translation", "documentation", "audit", "lint"],
   "skills": "./skills/",
   "interface": {
     "displayName": "wabun",
-    "shortDescription": "日本語技術文書を測定・書き直し・監査",
-    "longDescription": "直訳調マーカーを測定し、情報を保存したまま書き直します。技術文書の主張と根拠のつり合いを点検し、指摘を報告する監査スキルも含みます。",
+    "shortDescription": "翻訳調の判定と技術文書の実態照合",
+    "longDescription": "翻訳調を数値で判定し、情報を保存したまま書き直します。README・設計書・リリースノート・技術ブログ記事の記述を、コード・設定・テスト・実験ログと照合する監査スキルも含みます。",
     "developerName": "happy-ryo",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
     "websiteURL": "https://github.com/happy-ryo/wabun",
     "defaultPrompt": [
       "この日本語技術文書の直訳調を測定し、情報を落とさず書き直してください。",
-      "この技術文書の主張と根拠のつり合いを監査してください。"
+      "この技術文書の記述をリポジトリのコード・設定・テストと照合してください。"
     ]
   }
 }

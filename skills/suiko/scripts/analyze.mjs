@@ -18,7 +18,7 @@
 // 終了コード:
 //   0 = ok(主要マーカーは書き下ろし水準)
 //   1 = no_prose(測定可能な散文がない)
-//   2 = needs_revision(主要マーカーが閾値超過。複数ファイル時は1つでも超過で2)
+//   2 = needs_revision(主要マーカーが閾値以上。複数ファイル時は1つでも該当すれば2)
 //  64 = 引数エラー
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -247,7 +247,7 @@ function report(res, sentences, label) {
     }
     out.push(`\n総合: ${flagged.length} 項目が翻訳調水準。修正順は上の表の並び順が効率的。`);
   } else {
-    out.push("\n総合: 主要マーカーはいずれも許容上限内。参照値へ寄せるための過剰修正はしない。");
+    out.push("\n総合: 主要マーカーはいずれも許容上限未満。参照値へ寄せるための過剰修正はしない。");
   }
   // 補助判定は主要マーカーと分けて報告する(失敗扱いにしない)
   for (const w of res.warnings) out.push(`補助判定: ${w}`);
