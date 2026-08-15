@@ -19,49 +19,49 @@ import { pathToFileURL } from "node:url";
 export const MARKERS = {
   "受動「〜される」": {
     pat: /され(る|ます|た|ている|ない|ず)/g,
-    base: 41, trans: 74, warn: 55,
+    base: 41.3, trans: 80.3, warn: 55,
     fix: "動作主を決めて能動に。不要なら「〜とする/〜になる」。※リファレンス文体自体が受動を呼ぶので基準は高め",
   },
   "文頭「これは/この〜は」": {
     head: /^(これ|それ|この[^はがを]{0,12}|本[^はがを]{0,10})[はが]/,
-    base: 2.4, trans: 15.8, warn: 6,
+    base: 2.4, trans: 15.3, warn: 6,
     fix: "指す先が直前にあるならほぼ削れる。英語の主語スロットの残骸",
   },
   "モダリティ直訳": {
     pat: /(してもよい|しても構わない|なければならない|なければなりません|すべきで|することが望まし)/g,
-    base: 1.8, trans: 4.8, warn: 3,
+    base: 1.8, trans: 6.6, warn: 3,
     fix: "may/must の一対一置換。「〜できる」「〜する」「〜してください」に崩す",
   },
   "複合助詞「において」等": {
     pat: /(において|に関して|について|に対して)/g,
-    base: 4.2, trans: 13.0, warn: 7,
+    base: 4.2, trans: 14.6, warn: 7,
     fix: "前置詞の写し。「で」「は」「へ」で足りることが多い",
   },
   "「および/または」": {
     pat: /(および|または|ならびに)/g,
-    base: 5.4, trans: 17.8, warn: 9,
+    base: 5.5, trans: 19.0, warn: 9,
     fix: "and/or の写し。日本語の並列は読点だけで成立する",
   },
   "「〜場合」": {
     pat: /場合/g,
-    base: 28, trans: 55, warn: 38,
+    base: 28.5, trans: 58.4, warn: 38,
     fix: "if 節の一対一変換。「〜なら」「〜とき」や連体形に散らす",
   },
   "「なお、/ただし、」": {
     pat: /(なお、|ただし、)/g,
-    base: 0.5, trans: 5.5, warn: 2.5,
+    base: 0.0, trans: 5.8, warn: 2.5,
     fix: "Note/However の段落頭写し。文中の「〜が」「〜ため」に畳む",
   },
   "「ことができ」": {
     pat: /ことができ/g,
-    base: 0.0, trans: 2.1, warn: 1.0,
+    base: 0.0, trans: 2.2, warn: 1.0,
     fix: "can の写し。「〜できる」で足りる",
   },
 };
 
 // 逆方向マーカー: 少なすぎると翻訳調のシグナル(和文の緩衝装置の欠落)
 export const SOFTENERS = {
-  "「という」": { pat: /という/g, base: 4.9, trans: 0.7 },
+  "「という」": { pat: /という/g, base: 5.0, trans: 0.7 },
 };
 
 export function extractProse(text) {
