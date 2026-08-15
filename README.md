@@ -14,7 +14,7 @@ AI が書く日本語はなぜか翻訳臭い——のに、「〜すること�
 ## 使い方
 
 ```
-/wabun:polish path/to/doc.md
+/wabun:suiko path/to/doc.md
 ```
 
 ファイルパスの代わりにテキストを貼り付けても、「さっきの出力を直して」でも動きます。全マーカーが書き下ろし水準なら何もしません。
@@ -22,7 +22,7 @@ AI が書く日本語はなぜか翻訳臭い——のに、「〜すること�
 測定だけならスクリプト単体で動きます。要修正項目があると終了コード 2 を返すので、CI にも置けます。
 
 ```bash
-node skills/polish/scripts/analyze.mjs doc.md
+node skills/suiko/scripts/analyze.mjs doc.md
 ```
 
 ## 何を検出するのか — 実測に基づく設計
