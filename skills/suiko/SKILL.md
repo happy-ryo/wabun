@@ -26,6 +26,16 @@ allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs *)
 
 ## 手順
 
+解析スクリプトは、この `SKILL.md` と同じディレクトリにある
+`scripts/analyze.mjs` を使う。実行環境に応じて次のパスを選ぶ。
+
+- Claude Code: `${CLAUDE_SKILL_DIR}/scripts/analyze.mjs` を使う。
+- Codex: 利用可能スキル一覧に示されたこの `SKILL.md` の親ディレクトリを
+  絶対パスで取得し、その下の `scripts/analyze.mjs` を使う。
+
+以下の Codex 用コマンドにある `<skill-dir>` は、実行前にその絶対パスへ
+置き換える。`<skill-dir>` という文字列のままシェルへ渡してはならない。
+
 ### 1. 対象の取得
 
 引数のファイルパス、貼り付けられたテキスト、または「さっきの出力」等で
@@ -33,8 +43,16 @@ allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs *)
 
 ### 2. 測定 (before)
 
+Claude Code:
+
 ```bash
 node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs 対象ファイル
+```
+
+Codex:
+
+```bash
+node "<skill-dir>/scripts/analyze.mjs" 対象ファイル
 ```
 
 - 終了コード 2 = 要修正項目あり。レポートの表を要約してユーザーに見せる。
@@ -109,8 +127,16 @@ node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs 対象ファイル
 
 ### 5. 検証 (after)
 
+Claude Code:
+
 ```bash
 node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs 書き直したファイル
+```
+
+Codex:
+
+```bash
+node "<skill-dir>/scripts/analyze.mjs" 書き直したファイル
 ```
 
 - before/after のマーカー密度を表で対比して見せる。

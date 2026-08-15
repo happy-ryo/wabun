@@ -1,0 +1,27 @@
+{
+  "name": "wabun",
+  "version": "0.6.0",
+  "description": "日本語技術文書の直訳調を測定し、情報を保存したまま書き直す。主張と根拠のつり合いを監査するスキルも含む。",
+  "author": {
+    "name": "happy-ryo",
+    "url": "https://github.com/happy-ryo"
+  },
+  "homepage": "https://github.com/happy-ryo/wabun",
+  "repository": "https://github.com/happy-ryo/wabun",
+  "license": "MIT",
+  "keywords": ["japanese", "writing", "translation", "style", "lint"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "wabun",
+    "shortDescription": "日本語技術文書を測定・書き直し・監査",
+    "longDescription": "直訳調マーカーを測定し、情報を保存したまま日本語として書き直します。技術文書の主張と根拠のつり合いを点検し、指摘を報告する監査スキルも含みます。",
+    "developerName": "happy-ryo",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/happy-ryo/wabun",
+    "defaultPrompt": [
+      "この日本語技術文書の直訳調を測定し、情報を落とさず書き直してください。",
+      "この技術文書の主張と根拠のつり合いを監査してください。"
+    ]
+  }
+}
