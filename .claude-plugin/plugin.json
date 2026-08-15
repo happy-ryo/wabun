@@ -1,7 +1,7 @@
 {
   "name": "wabun",
   "description": "日本語技術文書の直訳調（翻訳調）を測定し、情報を保存したまま日本語として書き直す。既存文書の改善にも使える。",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": {
     "name": "happy-ryo",
     "url": "https://github.com/happy-ryo"
