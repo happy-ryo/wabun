@@ -7,7 +7,7 @@ description: >
   「日本語を自然に」「和文チェック」などの依頼で発動。対象はファイル
   パス・貼り付けテキスト・直前の自分の出力のいずれでもよい。
 argument-hint: "[対象ファイル...]"
-allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/analyze.py *)
+allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs *)
 ---
 
 # 和文ポリッシュ: 直訳調の測定と書き直し
@@ -34,7 +34,7 @@ allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/analyze.py *)
 ### 2. 測定 (before)
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/analyze.py 対象ファイル
+node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs 対象ファイル
 ```
 
 - 終了コード 2 = 要修正項目あり。レポートの表を要約してユーザーに見せる。
@@ -75,7 +75,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/analyze.py 対象ファイル
 ### 5. 検証 (after)
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/analyze.py 書き直したファイル
+node ${CLAUDE_SKILL_DIR}/scripts/analyze.mjs 書き直したファイル
 ```
 
 - before/after のマーカー密度を表で対比して見せる。

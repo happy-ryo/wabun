@@ -22,7 +22,7 @@ AI が書く日本語はなぜか翻訳臭い——のに、「〜すること�
 測定だけならスクリプト単体で動きます。要修正項目があると終了コード 2 を返すので、CI にも置けます。
 
 ```bash
-python3 skills/polish/scripts/analyze.py doc.md
+node skills/polish/scripts/analyze.mjs doc.md
 ```
 
 ## 何を検出するのか — 実測に基づく設計
