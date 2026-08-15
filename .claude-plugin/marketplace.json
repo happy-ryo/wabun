@@ -1,0 +1,17 @@
+{
+  "name": "wabun-marketplace",
+  "owner": {
+    "name": "happy-ryo",
+    "url": "https://github.com/happy-ryo"
+  },
+  "plugins": [
+    {
+      "name": "wabun",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "description": "日本語技術文書の直訳調を測定し、情報を保存したまま書き直すスキル"
+    }
+  ]
+}
