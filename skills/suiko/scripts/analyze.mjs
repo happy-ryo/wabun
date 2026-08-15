@@ -27,32 +27,32 @@ import { pathToFileURL } from "node:url";
 export const MARKERS = {
   "受動「〜される」": {
     pat: /され(る|ます|た|ている|ない|ず)/g,
-    base: 41.5, trans: 79.1, warn: 55,
+    base: 41.4, trans: 79.9, warn: 55,
     fix: "動作主が原文か文脈から一意に決まる場合だけ能動に。決まらなければ「〜とする/〜になる」等の非受動を検討し、不自然なら残す。※リファレンス文体自体が受動を呼ぶので基準は高め",
   },
   "文頭「これは/この〜は」": {
     head: /^(これ|それ|この[^はがを]{0,12}|本[^はがを]{0,10})[はが]/,
-    base: 3.0, trans: 15.5, warn: 6,
+    base: 3.0, trans: 15.4, warn: 6,
     fix: "指す先が直前にあるならほぼ削れる。英語の主語スロットの残骸",
   },
   "モダリティ直訳": {
     pat: /(してもよい|しても構わない|なければならない|なければなりません|すべきで|することが望まし)/g,
-    base: 1.8, trans: 6.4, warn: 3,
+    base: 1.8, trans: 6.3, warn: 3,
     fix: "意味で訳し分ける。許可は「〜してよい/〜を認める」、義務は「〜が必要だ/〜を必須とする」、推奨は「〜を推奨する」。否定(〜すべきではない)は禁止・非推奨のまま保存する(「〜しないことを推奨する」等)。「〜できる」に崩してよいのは能力の意味のときだけ",
   },
   "複合助詞「において」等": {
     pat: /(において|に関して|について|に対して)/g,
-    base: 4.2, trans: 14.1, warn: 7,
+    base: 4.2, trans: 14.7, warn: 7,
     fix: "前置詞の写し。場所・話題なら「で」「は」で足りるが、対象・対比・比率では意味が変わる(「1台に対して2個」は「1台につき2個」)。判定できなければ残す",
   },
   "「および/または」": {
     pat: /(および|または|ならびに)/g,
-    base: 5.4, trans: 18.4, warn: 9,
+    base: 5.4, trans: 18.2, warn: 9,
     fix: "論理関係を保って言い換える。「および」は「と/両方」、「または」は「か/いずれか」。AND か OR か判別できないなら変更しない",
   },
   "「〜場合」": {
     pat: /場合/g,
-    base: 28.8, trans: 57.9, warn: 38,
+    base: 28.8, trans: 58.2, warn: 38,
     fix: "if 節の一対一変換。「〜なら」「〜とき」や連体形に散らす",
   },
   "「なお、/ただし、」": {
@@ -71,36 +71,75 @@ export const MARKERS = {
 // reference = 同ジャンル書き下ろし(C)、general = 別題材の一般書き下ろし(A)、
 // translation = AI翻訳(B)。リファレンス文体自体が緩衝を減らすため両方持つ。
 export const SOFTENERS = {
-  "「という」": { pat: /という/g, reference: 1.8, general: 5.0, translation: 0.7, warnBelow: 1.5 },
+  "「という」": { pat: /という/g, reference: 1.8, general: 4.9, translation: 0.7, warnBelow: 1.5 },
 };
 
 export function extractProse(text) {
   text = text.replace(/\r\n?/g, "\n");
-  // コードフェンス(``` / ~~~)は行単位の状態機械で除外する
-  const kept = [];
-  let fence = null;
-  for (const line of text.split("\n")) {
-    const m = line.match(/^[ \t]*(`{3,}|~{3,})/);
+
+  // 1パス目: 行単位の前処理。引用・リストのコンテナを剥がしてから
+  // フェンスを判定する(引用内フェンス「> ```」に対応)。開始フェンスの
+  // 文字と長さを保持し、同じ文字・開始長以上・後続が空白だけの行で閉じる
+  // (4連バッククォートを内側の3連で閉じない)。
+  const lines = [];
+  let fence = null; // { ch, len }
+  for (const raw of text.split("\n")) {
+    let s = raw;
+    let isListItem = false;
+    for (;;) {
+      const q = s.match(/^[ \t]*>[ \t]?/);
+      if (q) { s = s.slice(q[0].length); continue; }
+      const l = s.match(/^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/);
+      if (l) { s = s.slice(l[0].length); isListItem = true; continue; }
+      break;
+    }
+    const fm = s.match(/^[ \t]*(`{3,}|~{3,})(.*)$/);
     if (fence) {
-      if (m && m[1][0] === fence) fence = null;
+      if (fm && fm[1][0] === fence.ch && fm[1].length >= fence.len && /^[ \t]*$/.test(fm[2])) fence = null;
       continue;
     }
-    if (m) { fence = m[1][0]; continue; }
-    kept.push(line);
+    if (fm) { fence = { ch: fm[1][0], len: fm[1].length }; continue; }
+    const hm = s.match(/^[ \t]*#{1,6}[ \t]+/);
+    const isHeading = !!hm;
+    if (isHeading) s = s.slice(hm[0].length);
+    lines.push({ s, isListItem, isHeading });
   }
-  text = kept
-    .join("\n")
+
+  // 2パス目: GFM 表をブロックで除去する。区切り行(-:| と空白のみ)を
+  // 起点に、隣接する | を含む行(先頭 | なしの表も含む)を落とす。
+  const isDelim = (t) => /^[ \t|:-]+$/.test(t) && t.includes("-") && t.includes("|");
+  const drop = new Set();
+  lines.forEach((L, i) => {
+    if (/^[ \t]*\|/.test(L.s)) drop.add(i);
+    if (isDelim(L.s)) {
+      drop.add(i);
+      if (i > 0 && lines[i - 1].s.includes("|")) drop.add(i - 1);
+      for (let j = i + 1; j < lines.length && lines[j].s.includes("|"); j++) drop.add(j);
+    }
+  });
+
+  // 3パス目: 連結。リスト項目の開始と見出しには文境界を入れる。
+  // 句点のない箇条書きが1つの巨大断片に融合して 300 字超過で捨てられる
+  // のを防ぎ、項目・見出し直後の文頭マーカー判定を守る。
+  let buf = "";
+  const boundary = () => { if (buf && !/。[ \t\n]*$/.test(buf)) buf += "。"; };
+  for (let i = 0; i < lines.length; i++) {
+    if (drop.has(i)) continue;
+    const L = lines[i];
+    if (L.isListItem || L.isHeading) boundary();
+    buf += L.s + "\n";
+    if (L.isHeading) boundary();
+  }
+
+  text = buf
     .replace(/<(script|style|svg|pre|code)[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, "\n")
-    // markdown の表の行は行単位で除去する(改行を潰した後だと隣の散文と
-    // 同じ断片に融合するため)
-    .replace(/^[ \t]*\|.*$/gm, " ")
     // リンク・画像は表示名を散文として保存する
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    // インラインコードはコード部分だけ空白にする(文は捨てない)
-    .replace(/`[^`\n]*`/g, " ")
-    // リスト・引用・見出しの接頭辞を外してから文頭判定に回す
-    .replace(/^[ \t]*(?:[-*+]|\d+[.)]|>+|#{1,6})[ \t]+/gm, "")
+    // インラインコードはコード部分だけ空白にする(文は捨てない)。
+    // バッククォートの連続長を対応させる(``〜`` にも一致)
+    .replace(/(`+)([^`\n]+?)\1(?!`)/g, " ")
+    .replace(/`+/g, " ")
     .replace(/&[a-z]+;/gi, " ")
     .replace(/[ \t\n]+/g, " ")
     // 固定幅折り返しで泣き別れた語を接合する:

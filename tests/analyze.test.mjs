@@ -189,3 +189,60 @@ test("CLI: 入力エラーは 66、不明オプションは 64", () => {
   assert.equal(run("/no/such/file.txt").status, 66);
   assert.equal(run("--bogus", "x.txt").status, 64);
 });
+
+test("引用内フェンス(> ```)のコードを数えない", () => {
+  const text = [
+    "> ```",
+    "> この場合はコードなので数えない場合である。",
+    "> ```",
+    doc("散文のこの一文だけを測定するという想定で書いてある"),
+  ].join("\n");
+  const res = measure(extractProse(text));
+  assert.equal(res.markers["「〜場合」"].count, 0);
+  assert.equal(res.sentences, 1);
+});
+
+test("4連フェンスを内側の3連で閉じた扱いにしない", () => {
+  const text = [
+    "````",
+    "```",
+    "この場合はまだフェンスの中なので数えない場合である。",
+    "````",
+    doc("散文のこの一文だけを測定するという想定で書いてある"),
+  ].join("\n");
+  const res = measure(extractProse(text));
+  assert.equal(res.markers["「〜場合」"].count, 0);
+  assert.equal(res.sentences, 1);
+});
+
+test("複数バッククォートのコードスパンを数えない", () => {
+  const text = doc("この検証は ``失敗した場合`` というコードスパンを含む文でも中身を数えない");
+  const res = measure(extractProse(text));
+  assert.equal(res.markers["「〜場合」"].count, 0);
+  assert.equal(res.sentences, 1);
+});
+
+test("先頭 | のない GFM 表をブロックで除外する", () => {
+  const text = [
+    "列の見出しA | 列の見出しB",
+    "--- | ---",
+    "この場合は表の中の行である | 数えない場合の値",
+    doc("散文のこの一文だけを測定するという想定で書いてある"),
+  ].join("\n");
+  const res = measure(extractProse(text));
+  assert.equal(res.markers["「〜場合」"].count, 0);
+  assert.equal(res.sentences, 1);
+});
+
+test("句点のない箇条書きが融合して300字超過で捨てられない", () => {
+  const items = Array.from({ length: 20 }, (_, i) =>
+    `- 箇条書きの項目その${i}は句点を持たないまま並んでいる`);
+  const res = measure(extractProse(items.join("\n")));
+  assert.equal(res.sentences, 20, `sentences=${res.sentences}`);
+});
+
+test("引用内リスト(> - これは…)の文頭指示語を検出する", () => {
+  const text = "> - これは引用の中の箇条書きで指示語から始まる一文である。\n";
+  const res = measure(extractProse(text));
+  assert.equal(res.markers["文頭「これは/この〜は」"].count, 1);
+});
