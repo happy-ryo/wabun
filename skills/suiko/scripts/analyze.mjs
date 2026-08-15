@@ -13,9 +13,10 @@
 // 技術リファレンス題材、各群約1.5万字)に由来する。単位は全て「1万字あたり」。
 // 終了コード: 0 = 全項目 ok / 2 = 要修正項目あり
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 // 文頭指示語は特別処理(head: true)
-const MARKERS = {
+export const MARKERS = {
   "受動「〜される」": {
     pat: /され(る|ます|た|ている|ない|ず)/g,
     base: 41, trans: 74, warn: 55,
@@ -59,17 +60,24 @@ const MARKERS = {
 };
 
 // 逆方向マーカー: 少なすぎると翻訳調のシグナル(和文の緩衝装置の欠落)
-const SOFTENERS = {
+export const SOFTENERS = {
   "「という」": { pat: /という/g, base: 4.9, trans: 0.7 },
 };
 
-function extractProse(text) {
+export function extractProse(text) {
   text = text
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/<(script|style|svg|pre|code)[^>]*>[\s\S]*?<\/\1>/g, " ")
     .replace(/<[^>]+>/g, "\n")
+    // markdown の表の行は行単位で除去する(改行を潰した後だと隣の散文と
+    // 同じ断片に融合し、無関係な文まで | で除外されてしまう)
+    .replace(/^[ \t]*\|.*$/gm, " ")
     .replace(/&[a-z]+;/g, " ")
-    .replace(/[ \t\n]+/g, " ");
+    .replace(/[ \t\n]+/g, " ")
+    // 固定幅折り返しで泣き別れた語を接合する:
+    // 日本語文字(かな・カナ・漢字・全角記号)同士に挟まれた空白は行折り返し由来
+    // とみなして除去する。英単語間の空白は保持される。
+    .replace(/([、-ヿ㐀-鿿！-｠])[ ]+(?=[、-ヿ㐀-鿿！-｠])/g, "$1");
   const out = [];
   for (let s of text.split("。")) {
     s = s.trim();
@@ -84,7 +92,7 @@ function extractProse(text) {
 
 const count = (s, re) => (s.match(re) || []).length;
 
-function measure(sentences) {
+export function measure(sentences) {
   const n = sentences.reduce((a, s) => a + s.length, 0);
   const res = { chars: n, sentences: sentences.length, markers: {}, softeners: {} };
   if (n === 0) return res;
@@ -159,21 +167,23 @@ function report(res, sentences) {
   return flagged;
 }
 
-// --- main ---
-const argv = process.argv.slice(2);
-const asJson = argv.includes("--json");
-const files = argv.filter((a) => a !== "--json");
-if (!files.length) {
-  console.log("使い方: node analyze.mjs [--json] FILE [FILE...] | cat doc.md | node analyze.mjs -");
-  process.exit(1);
-}
-const text = files.length === 1 && files[0] === "-"
-  ? readFileSync(0, "utf-8")
-  : files.map((f) => readFileSync(f, "utf-8")).join("\n");
-const sentences = extractProse(text);
-const res = measure(sentences);
-if (asJson) {
-  console.log(JSON.stringify(res, null, 1));
-} else {
-  process.exit(report(res, sentences).length ? 2 : 0);
+// --- main (CLI 実行時のみ。テストからの import では走らない) ---
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const argv = process.argv.slice(2);
+  const asJson = argv.includes("--json");
+  const files = argv.filter((a) => a !== "--json");
+  if (!files.length) {
+    console.log("使い方: node analyze.mjs [--json] FILE [FILE...] | cat doc.md | node analyze.mjs -");
+    process.exit(1);
+  }
+  const text = files.length === 1 && files[0] === "-"
+    ? readFileSync(0, "utf-8")
+    : files.map((f) => readFileSync(f, "utf-8")).join("\n");
+  const sentences = extractProse(text);
+  const res = measure(sentences);
+  if (asJson) {
+    console.log(JSON.stringify(res, null, 1));
+  } else {
+    process.exit(report(res, sentences).length ? 2 : 0);
+  }
 }
