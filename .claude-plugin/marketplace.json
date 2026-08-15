@@ -1,5 +1,6 @@
 {
   "name": "wabun-marketplace",
+  "description": "日本語技術文書の直訳調を測定・書き直し・監査する wabun プラグインのマーケットプレイス",
   "owner": {
     "name": "happy-ryo",
     "url": "https://github.com/happy-ryo"

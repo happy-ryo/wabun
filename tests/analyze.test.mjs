@@ -151,3 +151,41 @@ test("softener は同ジャンル基準と一般書き下ろしの両方を持�
   const s = res.softeners["「という」"];
   assert.ok("reference" in s && "general" in s && "translation" in s);
 });
+
+test("CLI: 大量ファイルの --json が途中で切れない (64KB超)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "wabun-test-"));
+  const files = [];
+  for (let i = 0; i < 50; i++) {
+    const f = join(dir, `doc${i}.txt`);
+    writeFileSync(f, OK.repeat(4));
+    files.push(f);
+  }
+  const r = run("--json", ...files);
+  assert.ok(r.stdout.length > 65536, `出力が小さすぎて回帰確認にならない: ${r.stdout.length}`);
+  const j = JSON.parse(r.stdout); // exit() 直切りだとここで途切れて落ちる
+  assert.equal(j.files.length, 50);
+});
+
+test("CLI: ok と no_prose の混在は exit 1 (部分失敗を成功にしない)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "wabun-test-"));
+  const ok = join(dir, "ok.txt"); writeFileSync(ok, OK);
+  const np = join(dir, "np.txt"); writeFileSync(np, "```\ncode only\n```\n");
+  assert.equal(run(ok, np).status, 1);
+  // needs_revision が混じれば 2 が優先
+  const bad = join(dir, "bad.txt"); writeFileSync(bad, BAD);
+  assert.equal(run(ok, np, bad).status, 2);
+});
+
+test("CLI: --aggregate は未閉鎖フェンスが後続ファイルを汚染しない", () => {
+  const dir = mkdtempSync(join(tmpdir(), "wabun-test-"));
+  const a = join(dir, "a.txt"); writeFileSync(a, "```\n閉じていないフェンスの中身\n");
+  const b = join(dir, "b.txt"); writeFileSync(b, OK);
+  const j = JSON.parse(run("--json", "--aggregate", a, b).stdout);
+  assert.ok(j.aggregate.chars > 0, "b.txt の散文が測定されていない");
+  assert.equal(j.aggregate.status, "ok");
+});
+
+test("CLI: 入力エラーは 66、不明オプションは 64", () => {
+  assert.equal(run("/no/such/file.txt").status, 66);
+  assert.equal(run("--bogus", "x.txt").status, 64);
+});

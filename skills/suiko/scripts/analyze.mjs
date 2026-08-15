@@ -38,12 +38,12 @@ export const MARKERS = {
   "モダリティ直訳": {
     pat: /(してもよい|しても構わない|なければならない|なければなりません|すべきで|することが望まし)/g,
     base: 1.8, trans: 6.4, warn: 3,
-    fix: "意味で訳し分ける。許可は「〜してよい/〜を認める」、義務は「〜が必要だ/〜を必須とする」、推奨は「〜を推奨する」。「〜できる」に崩してよいのは能力の意味のときだけ",
+    fix: "意味で訳し分ける。許可は「〜してよい/〜を認める」、義務は「〜が必要だ/〜を必須とする」、推奨は「〜を推奨する」。否定(〜すべきではない)は禁止・非推奨のまま保存する(「〜しないことを推奨する」等)。「〜できる」に崩してよいのは能力の意味のときだけ",
   },
   "複合助詞「において」等": {
     pat: /(において|に関して|について|に対して)/g,
     base: 4.2, trans: 14.1, warn: 7,
-    fix: "前置詞の写し。「で」「は」「へ」で足りることが多い",
+    fix: "前置詞の写し。場所・話題なら「で」「は」で足りるが、対象・対比・比率では意味が変わる(「1台に対して2個」は「1台につき2個」)。判定できなければ残す",
   },
   "「および/または」": {
     pat: /(および|または|ならびに)/g,
@@ -58,7 +58,7 @@ export const MARKERS = {
   "「なお、/ただし、」": {
     pat: /(なお、|ただし、)/g,
     base: 0.0, trans: 5.6, warn: 2.5,
-    fix: "Note/However の段落頭写し。文中の「〜が」「〜ため」に畳む",
+    fix: "Note/However の段落頭写し。補足なら文中の「〜が」「〜ため」に畳めるが、例外条件は「〜を除く」「〜に限る」で明示的に保存する",
   },
   "「ことができ」": {
     pat: /ことができ/g,
@@ -137,7 +137,7 @@ export function measure(sentences) {
     const density = per10k(v);
     const flag = density >= m.warn;
     if (flag) flagged.push(name);
-    res.markers[name] = { count: v, per10k: density, base: m.base, trans: m.trans, flag, fix: m.fix };
+    res.markers[name] = { count: v, per10k: density, base: m.base, warn: m.warn, trans: m.trans, flag, fix: m.fix };
   }
   for (const [name, m] of Object.entries(SOFTENERS)) {
     const v = sentences.reduce((a, s) => a + count(s, m.pat), 0);
@@ -186,26 +186,26 @@ function report(res, sentences, label) {
   }
   out.push(`散文 ${res.sentences} 文 / ${res.chars} 字を測定 (数値は1万字あたり)`);
   out.push("");
-  out.push(pad("マーカー", 26) + padNum("実測", 6) + padNum("基準", 7) + padNum("翻訳調", 8) + "  判定");
+  out.push(pad("マーカー", 26) + padNum("実測", 6) + padNum("C参照値", 9) + padNum("許容上限", 10) + padNum("翻訳調", 8) + "  判定");
   const flagged = [];
   for (const [name, m] of Object.entries(res.markers)) {
-    out.push(pad(name, 26) + padNum(m.per10k, 6) + padNum(m.base, 7) + padNum(m.trans, 8) + (m.flag ? "  ◆ 要修正" : "    ok"));
+    out.push(pad(name, 26) + padNum(m.per10k, 6) + padNum(m.base, 9) + padNum(m.warn, 10) + padNum(m.trans, 8) + (m.flag ? "  ◆ 要修正" : "    ok"));
     if (m.flag) flagged.push(name);
   }
   for (const [name, m] of Object.entries(res.softeners)) {
-    out.push(pad(name + " (緩衝)", 26) + padNum(m.per10k, 6) + padNum(m.reference, 7) + padNum(m.translation, 8) + (m.low ? "  ◇ 少ない" : "    ok"));
+    out.push(pad(name + " (緩衝)", 26) + padNum(m.per10k, 6) + padNum(m.reference, 9) + padNum("-", 10) + padNum(m.translation, 8) + (m.low ? "  ◇ 少ない" : "    ok"));
   }
   if (flagged.length) {
     out.push("\n--- 修正ガイドと実例 ---");
     for (const name of flagged) {
       const m = res.markers[name];
-      out.push(`\n◆ ${name} (${m.per10k}/万字, 基準 ${m.base})`);
+      out.push(`\n◆ ${name} (${m.per10k}/万字, C参照値 ${m.base}, 許容上限 ${m.warn})`);
       out.push(`  → ${m.fix}`);
       for (const ex of findExamples(sentences, name)) out.push(`    例: ${ex}`);
     }
     out.push(`\n総合: ${flagged.length} 項目が翻訳調水準。修正順は上の表の並び順が効率的。`);
   } else {
-    out.push("\n総合: 主要な翻訳調マーカーは書き下ろし水準。");
+    out.push("\n総合: 主要マーカーはいずれも許容上限内。参照値へ寄せるための過剰修正はしない。");
   }
   // 補助判定は主要マーカーと分けて報告する(失敗扱いにしない)
   for (const w of res.warnings) out.push(`補助判定: ${w}`);
@@ -213,41 +213,58 @@ function report(res, sentences, label) {
 }
 
 // --- main (CLI 実行時のみ。テストからの import では走らない) ---
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const argv = process.argv.slice(2);
+// 終了は process.exit() ではなく process.exitCode で行う。exit() は
+// パイプへの排出完了を待たず、大きな JSON 出力が 64KB 前後で切れる。
+function main(argv) {
   const asJson = argv.includes("--json");
   const aggregate = argv.includes("--aggregate");
   const files = argv.filter((a) => a !== "--json" && a !== "--aggregate");
-  if (!files.length) {
+  const unknown = files.filter((a) => a.startsWith("-") && a !== "-");
+  if (!files.length || unknown.length) {
+    if (unknown.length) console.error(`不明なオプション: ${unknown.join(" ")}`);
     console.log("使い方: node analyze.mjs [--json] [--aggregate] FILE [FILE...] | cat doc.md | node analyze.mjs -");
-    process.exit(64);
+    return 64;
   }
   const readOne = (f) => (f === "-" ? readFileSync(0, "utf-8") : readFileSync(f, "utf-8"));
-  const results = [];
-  let agg = null;
+  const texts = [];
+  for (const f of files) {
+    try {
+      texts.push(readOne(f));
+    } catch (e) {
+      console.error(`読み込み失敗: ${f} (${e.code ?? e.message})`);
+      return 66; // EX_NOINPUT: 入力エラーは判定結果と区別する
+    }
+  }
+  let statuses;
   if (aggregate) {
-    const sentences = extractProse(files.map(readOne).join("\n"));
-    agg = { ...measure(sentences), files: files.slice() };
-    if (!asJson) report(agg, sentences, `連結測定 (${files.length} ファイル)`);
+    // 生テキストの連結はしない: 先のファイルの未閉鎖フェンスが後続を
+    // 汚染する。各ファイルを同じ物差しで抽出してから文配列を合算する。
+    const sentences = files.flatMap((_, i) => extractProse(texts[i]));
+    const agg = { ...measure(sentences), files: files.slice() };
+    if (asJson) console.log(JSON.stringify({ files: files.slice(), aggregate: agg }, null, 1));
+    else report(agg, sentences, `連結測定 (${files.length} ファイル)`);
+    statuses = [agg.status];
   } else {
-    for (const f of files) {
-      const sentences = extractProse(readOne(f));
-      const res = measure(sentences);
-      results.push({ file: f, res, sentences });
-      if (!asJson) {
-        report(res, sentences, files.length > 1 ? f : undefined);
+    const results = files.map((f, i) => {
+      const sentences = extractProse(texts[i]);
+      return { file: f, res: measure(sentences), sentences };
+    });
+    if (asJson) {
+      console.log(JSON.stringify({ files: results.map(({ file, res }) => ({ file, ...res })) }, null, 1));
+    } else {
+      for (const { file, res, sentences } of results) {
+        report(res, sentences, files.length > 1 ? file : undefined);
         if (files.length > 1) console.log("");
       }
     }
+    statuses = results.map((r) => r.res.status);
   }
-  if (asJson) {
-    const payload = aggregate
-      ? { files: files.slice(), aggregate: agg }
-      : { files: results.map(({ file, res }) => ({ file, ...res })) };
-    console.log(JSON.stringify(payload, null, 1));
-  }
-  const statuses = aggregate ? [agg.status] : results.map((r) => r.res.status);
-  if (statuses.includes("needs_revision")) process.exit(2);
-  if (statuses.every((s) => s === "no_prose")) process.exit(1);
-  process.exit(0);
+  // 判定順: 1つでも要修正なら 2、それ以外で散文なしが混じれば 1、全件 ok で 0
+  if (statuses.includes("needs_revision")) return 2;
+  if (statuses.includes("no_prose")) return 1;
+  return 0;
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  process.exitCode = main(process.argv.slice(2));
 }
