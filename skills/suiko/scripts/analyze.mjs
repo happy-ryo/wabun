@@ -77,6 +77,26 @@ export const SOFTENERS = {
   "「という」": { pat: /という/g, reference: 1.8, general: 4.9, translation: 0.7, warnBelow: 1.5 },
 };
 
+// 補助判定「詰まり」: 一文に情報が詰まりすぎて読みにくい兆候。対照実験の
+// 外にある観点で、閾値は 2026-08 の目視レビュー由来の未検証値。主要マーカー
+// と区別して warnings で報告し、終了コードには影響させない。
+// 列挙が1段落に詰まっている(箇条書き化すべき)ケースや、用語が定義より
+// 先に使われる順序の問題は機械検出できないので SKILL.md の目視観点に委ねる。
+export const DENSITY = {
+  "長文(120字以上)": {
+    test: (s) => s.length >= 120,
+    hint: "文を分割するか、並列の内容は箇条書きに",
+  },
+  "括弧の挿入が2回以上ある文": {
+    test: (s) => (s.match(/（/g) || []).length >= 2,
+    hint: "括弧の中身を本文へ繰り込むか、別の文に出す",
+  },
+  "散文中の矢印記号": {
+    test: (s) => /[→⇒]/.test(s),
+    hint: "「AだったがBになった」のように文で書く",
+  },
+};
+
 export function extractProse(text) {
   text = text.replace(/\r\n?/g, "\n");
 
@@ -166,7 +186,7 @@ export function measure(sentences) {
   const n = sentences.reduce((a, s) => a + s.length, 0);
   const res = {
     chars: n, sentences: sentences.length,
-    status: "no_prose", markers: {}, softeners: {}, warnings: [],
+    status: "no_prose", markers: {}, softeners: {}, density: {}, warnings: [],
     style: { desu_masu: 0, ratio: 0 },
   };
   if (n === 0) return res;
@@ -190,6 +210,11 @@ export function measure(sentences) {
       reference: m.reference, general: m.general, translation: m.translation, low,
     };
     if (low) res.warnings.push(`${name}が少ない(同ジャンル基準 ${m.reference}、別題材の一般書き下ろしでは ${m.general})。断定の連打になっていないか確認`);
+  }
+  for (const [name, d] of Object.entries(DENSITY)) {
+    const hits = sentences.filter(d.test);
+    res.density[name] = { count: hits.length, example: hits.length ? hits[0].slice(0, 60) : null };
+    if (hits.length) res.warnings.push(`詰まり: ${name}が ${hits.length} 文。${d.hint}。例:「${hits[0].slice(0, 60)}」`);
   }
   const masu = sentences.filter((s) => /(ます|です|ません|ましょう)$/.test(s)).length;
   const ratio = Math.round((masu / sentences.length) * 100) / 100;

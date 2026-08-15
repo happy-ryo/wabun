@@ -122,6 +122,21 @@ test("補助判定は warnings に入り status を needs_revision にしない"
   assert.ok(res.warnings.some((w) => w.includes("という")), JSON.stringify(res.warnings));
 });
 
+test("補助判定「詰まり」: 長文・括弧・矢印を warnings で報告し status は変えない", () => {
+  const long = "一文をわざと長く書いてあって、" + "とてもとても長い説明が続き、".repeat(8) + "最後まで区切りなく続く";
+  const text = doc(
+    long,
+    "括弧の挿入（一つ目）と（二つ目）を同じ文に置いた検証である",
+    "適用の前後で 7 項目 → 0 項目になったという結果を矢印で書いてある"
+  );
+  const res = measure(extractProse(text));
+  assert.equal(res.status, "ok");
+  assert.equal(res.density["長文(120字以上)"].count, 1);
+  assert.equal(res.density["括弧の挿入が2回以上ある文"].count, 1);
+  assert.equal(res.density["散文中の矢印記号"].count, 1);
+  assert.ok(res.warnings.filter((w) => w.startsWith("詰まり:")).length === 3, JSON.stringify(res.warnings));
+});
+
 test("CLI: 終了コード 2(要修正) / 0(水準内) / 1(散文なし) / 64(引数なし)", () => {
   const dir = mkdtempSync(join(tmpdir(), "wabun-test-"));
   const bad = join(dir, "bad.txt"); writeFileSync(bad, BAD);

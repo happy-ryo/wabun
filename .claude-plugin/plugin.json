@@ -1,7 +1,7 @@
 {
   "name": "wabun",
   "description": "日本語技術文書の翻訳調を数値で判定して書き直し、文書の記述をリポジトリの実態と照合する。",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "author": {
     "name": "happy-ryo",
     "url": "https://github.com/happy-ryo"
