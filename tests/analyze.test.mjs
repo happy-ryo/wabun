@@ -61,6 +61,16 @@ test("文頭指示語は文頭のみ数える", () => {
   assert.equal(res.markers["文頭「これは/この〜は」"].count, 1);
 });
 
+test("文頭指示語: 助詞や引用を飛び越えた後方の「は」を拾わない", () => {
+  const text = doc(
+    "この修正で「モダリティ硬直は特有」という当初の結論は覆っている",  // 誤検出していた形
+    "この標本で AI に偏ったのは受動の多さだったという結果になった",    // 同上
+    "この文書には本マニュアルより詳しい説明と議論が含まれている"        // 正当な標的
+  );
+  const res = measure(extractProse(text));
+  assert.equal(res.markers["文頭「これは/この〜は」"].count, 1);
+});
+
 test("リスト接頭辞を外して文頭指示語を判定する", () => {
   const text = "- これは箇条書きの中で指示語から始まる一文の検証である。\n";
   const res = measure(extractProse(text));
