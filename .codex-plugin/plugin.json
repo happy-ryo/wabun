@@ -1,6 +1,6 @@
 {
   "name": "wabun",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "日本語技術文書の直訳調を測定し、情報を保存したまま書き直す。主張と根拠のつり合いを監査するスキルも含む。",
   "author": {
     "name": "happy-ryo",
